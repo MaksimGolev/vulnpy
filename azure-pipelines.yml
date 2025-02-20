@@ -1,0 +1,36 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - checkout: self
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+      pip install bandit
+    displayName: 'Установка зависимостей и Bandit'
+
+  - script: |
+      cd bad && python db_init.py
+    displayName: 'Инициализация БД для bad-версии'
+
+  - script: |
+      cd good && python db_init.py
+    displayName: 'Инициализация БД для good-версии'
+
+  - script: |
+      bandit -r . -ll -o bandit_report.txt
+    displayName: 'Запуск анализа кода'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: 'bandit_report.txt'
+      artifactName: 'SecurityReports'
+    displayName: 'Сохранение отчета'
